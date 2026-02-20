@@ -1,0 +1,21 @@
+Usuario: Hola, ¿qué horario tienen?
+Bot: Nuestro horario es de 9 a 18 hs. ¿En qué más puedo ayudarte?
+Usuario: ¿Aceptan tarjeta de crédito?
+Bot: Sí, aceptamos todas las tarjetas. ¿Deseas realizar un pedido?
+_____________________________________________________________________
+Usuario: Necesito hablar con un agente, tengo un problema con mi pedido.
+Bot: Entiendo, te transfiero con un agente humano. Por favor espera un momento.
+(Sistema marca conversación como "requiere humano")
+(Agente ve la conversación en el panel y responde)
+Agente: Hola, soy Carlos, ¿cuál es el número de tu pedido?
+_____________________________________________________________________
+(Agente desde panel hace clic en "Tomar control")
+Sistema: Has tomado el control de la conversación. Ahora tus respuestas se enviarán como humano.
+Agente: Hola, soy el agente, ¿cómo puedo ayudarte?
+_____________________________________________________________________graph TD
+    A[Usuario envía mensaje] --> B{¿Contiene frase de derivación?}
+    B -->|Sí| C[Cambiar estado a 'requiere humano']
+    B -->|No| D[Generar respuesta con IA]
+    C --> E[Notificar en panel]
+    E --> F[Agente responde]
+    D --> G[Enviar respuesta]
