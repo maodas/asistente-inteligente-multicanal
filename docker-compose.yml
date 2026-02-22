@@ -62,12 +62,13 @@ services:
       TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      PYTHONPATH: /app  # Importante para imports
     volumes:
       - ./backend:/app
     depends_on:
       - redis
       - postgres
-    command: celery -A app.worker worker --loglevel=info
+    command: celery -A app.worker worker --loglevel=info --pool=solo  # --pool=solo para Windows
 
 volumes:
   postgres_data:

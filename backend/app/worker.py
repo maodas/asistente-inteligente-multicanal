@@ -1,16 +1,26 @@
 from celery import Celery
 from app.core.config import settings
 
+# Crear instancia de Celery
 celery_app = Celery(
     "worker",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.workers.tasks"]  # Esta línea es CRUCIAL
+    include=["app.workers.tasks"]  # Importante: ruta correcta
 )
 
-celery_app.conf.task_routes = {
-    "app.workers.tasks.*": {"queue": "default"}
-}
+# Configuración opcional
+celery_app.conf.update(
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC',
+    enable_utc=True,
+    task_track_started=True,
+    task_time_limit=30 * 60,
+    task_soft_time_limit=60,
+    broker_connection_retry_on_startup=True,  # Para eliminar warning
+)
 
-# Opcional: eliminar el warning
-celery_app.conf.broker_connection_retry_on_startup = True
+# Para facilitar la importación desde otros módulos
+celery = celery_app

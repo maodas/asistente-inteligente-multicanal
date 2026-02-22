@@ -1,38 +1,51 @@
-from app.worker import celery_app
-from twilio.rest import Client
-from app.core.config import settings
 import logging
+from app.worker import celery_app
+from app.services.twilio_service import send_whatsapp_message
+from app.services.ai_service import generate_ai_response
 
 logger = logging.getLogger(__name__)
 
-@celery_app.task
-def process_whatsapp_message(message_data: dict):
+@celery_app.task(bind=True, name="app.workers.tasks.process_whatsapp_message")
+def process_whatsapp_message(self, message_data: dict):
     """
-    Tarea asíncrona que procesa un mensaje de WhatsApp y envía una respuesta.
+    Procesa un mensaje de WhatsApp: genera respuesta con IA y envía
     """
-    logger.info("🟢 WORKER: Tarea iniciada!")
-    logger.info(f"🟢 WORKER: Datos recibidos: {message_data}")
-    
-    from_number = message_data.get("from")
-    body = message_data.get("body")
-    
-    logger.info(f"🟢 WORKER: Procesando mensaje: '{body}' de {from_number}")
-    
-    # Inicializar cliente de Twilio
     try:
-        logger.info("🟢 WORKER: Inicializando cliente Twilio")
-        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        from_number = message_data.get("from")
+        message_body = message_data.get("body")
         
-        # Enviar respuesta (por ahora un eco simple)
-        response_text = f"Recibí tu mensaje: '{body}'. (Pronto con IA)"
-        logger.info(f"🟢 WORKER: Enviando respuesta: {response_text}")
+        logger.info(f"🟡 WORKER: Procesando mensaje de {from_number}: {message_body}")
         
-        message = client.messages.create(
-            body=response_text,
-            from_=settings.TWILIO_WHATSAPP_NUMBER,
-            to=from_number
-        )
-        logger.info(f"🟢 WORKER: Respuesta enviada, SID: {message.sid}")
+        # Generar respuesta con IA
+        ai_response = generate_ai_response(message_body)
+        logger.info(f"🟡 WORKER: Respuesta generada: {ai_response}")
+        
+        # Enviar respuesta por WhatsApp
+        result = send_whatsapp_message(from_number, ai_response)
+        
+        if result.get("success"):
+            logger.info(f"✅ WORKER: Respuesta enviada a {from_number}")
+            return {"status": "success", "to": from_number, "response": ai_response}
+        else:
+            # Si hay error de límite, registrar pero no reintentar
+            if result.get("error") == "daily_limit":
+                logger.warning(f"⚠️ WORKER: Límite diario alcanzado para {from_number}")
+                return {
+                    "status": "limit_reached", 
+                    "to": from_number, 
+                    "response": ai_response,
+                    "error": "daily_limit"
+                }
+            else:
+                # Para otros errores, reintentar
+                logger.error(f"🔴 WORKER ERROR: {result.get('message')}")
+                raise self.retry(exc=Exception(result.get('message')), countdown=60, max_retries=3)
         
     except Exception as e:
-        logger.error(f"🔴 WORKER ERROR: {e}", exc_info=True)
+        logger.error(f"🔴 WORKER ERROR: {str(e)}", exc_info=True)
+        # En caso de error, no reintentar automáticamente para no gastar límite
+        return {
+            "status": "error",
+            "to": from_number,
+            "error": str(e)
+        }

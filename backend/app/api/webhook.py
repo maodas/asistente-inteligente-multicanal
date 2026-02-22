@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from fastapi import APIRouter, Request, Response
 from twilio.twiml.messaging_response import MessagingResponse
 import logging
