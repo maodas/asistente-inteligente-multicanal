@@ -1,5 +1,5 @@
 from typing import Optional, List, Annotated
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from app.core.database import get_db
@@ -9,7 +9,10 @@ from app.models.conversation import Conversation, ConversationStatus
 from app.models.message import Message, SenderType
 from app.models.customer import Customer
 from app.schemas.conversation import ConversationInDB, ConversationListItem, MessageCreate, MessageInDB
+from app.services.twilio_service import send_whatsapp_message
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/", response_model=List[ConversationListItem])
@@ -20,22 +23,16 @@ def list_conversations(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0)
 ):
-    """
-    Lista conversaciones con información del último mensaje.
-    """
     query = db.query(Conversation)
     if status:
         query = query.filter(Conversation.status == status)
     
-    # Ordenar por última actualización (más reciente primero)
     query = query.order_by(desc(Conversation.updated_at)).offset(offset).limit(limit)
     conversations = query.all()
     
     result = []
     for conv in conversations:
-        # Obtener último mensaje
         last_msg = db.query(Message).filter(Message.conversation_id == conv.id).order_by(desc(Message.created_at)).first()
-        # Obtener teléfono del cliente
         customer_phone = conv.customer.phone_number if conv.customer else None
         
         result.append(ConversationListItem(
@@ -45,7 +42,7 @@ def list_conversations(
             status=conv.status,
             last_message=last_msg.content if last_msg else None,
             last_message_time=last_msg.created_at if last_msg else None,
-            unread_count=0  # pendiente de implementar
+            unread_count=0
         ))
     return result
 
@@ -66,9 +63,6 @@ def take_control(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    """
-    Cambia el estado de la conversación a 'human' para que el agente tome el control.
-    """
     conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversación no encontrada")
@@ -86,20 +80,22 @@ def send_message_as_agent(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
-    """
-    Envía un mensaje como agente humano a la conversación.
-    """
+    # 1. Obtener la conversación
     conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversación no encontrada")
     
-    # Asegurar que el mensaje se envía como humano
-    if message.sender != SenderType.HUMAN:
-        message.sender = SenderType.HUMAN
+    # 2. Verificar que el cliente tenga número de teléfono (para WhatsApp)
+    if not conversation.customer or not conversation.customer.phone_number:
+        raise HTTPException(
+            status_code=400, 
+            detail="El cliente no tiene un número de WhatsApp asociado"
+        )
     
+    # 3. Crear el mensaje en BD
     db_message = Message(
         conversation_id=conversation_id,
-        sender=message.sender,
+        sender=SenderType.HUMAN,
         content=message.content
     )
     db.add(db_message)
@@ -107,7 +103,17 @@ def send_message_as_agent(
     db.commit()
     db.refresh(db_message)
     
-    # TODO: Enviar el mensaje por WhatsApp usando Twilio
-    # (llamar a servicio de Twilio)
+    # 4. Enviar el mensaje por WhatsApp usando Twilio
+    try:
+        twilio_result = send_whatsapp_message(
+            to=conversation.customer.phone_number,
+            body=message.content
+        )
+        if not twilio_result.get("success"):
+            logger.warning(f"El mensaje se guardó pero no se pudo enviar por WhatsApp: {twilio_result.get('message')}")
+            # No lanzamos excepción porque el mensaje ya está guardado, pero podrías notificar al frontend si quieres
+    except Exception as e:
+        logger.error(f"Error enviando mensaje por Twilio: {e}", exc_info=True)
+        # El mensaje ya está guardado, no interrumpimos la respuesta
     
     return db_message

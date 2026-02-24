@@ -1,4 +1,4 @@
-import api from './api'; // lo crearemos después
+import api from './api';
 
 export const login = async (username, password) => {
   const formData = new URLSearchParams();

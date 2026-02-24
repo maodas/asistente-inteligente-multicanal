@@ -6,19 +6,20 @@ export default function Dashboard() {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        const res = await api.get('/conversations/');
-        setConversations(res.data);
-      } catch (error) {
-        console.error('Error fetching conversations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchConversations();
-  }, []);
+useEffect(() => {
+  const fetchConversations = async () => {
+    try {
+      // El token ya lo añade el interceptor de api.js
+      const res = await api.get('/conversations/');
+      setConversations(res.data);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchConversations();
+}, []);
 
   if (loading) return <div className="text-center p-8">Cargando...</div>;
 
