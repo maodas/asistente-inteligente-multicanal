@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ConversationDetail from './pages/ConversationDetail';
+import Stats from './pages/Stats';
 
 function PrivateRoute({ children }) {
   const { token, loading } = useAuth();
@@ -30,10 +31,20 @@ function App() {
               <ConversationDetail />
             </PrivateRoute>
           }
-        />
+                  />
+                  <Route
+            path="/stats"
+            element={
+              <PrivateRoute>
+                <Stats />
+              </PrivateRoute>
+            }
+          />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
     </BrowserRouter>
+
+    
   );
 }
 
