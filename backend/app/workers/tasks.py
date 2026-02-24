@@ -6,6 +6,7 @@ from app.core.database import SessionLocal
 from app.models.customer import Customer
 from app.models.conversation import Conversation, ConversationStatus
 from app.models.message import Message, SenderType
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
