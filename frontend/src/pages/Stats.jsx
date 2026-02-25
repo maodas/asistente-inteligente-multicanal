@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 export default function Stats() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { logout } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchStats();
@@ -27,11 +26,6 @@ export default function Stats() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   if (loading) return <div className="text-center p-8">Cargando estadísticas...</div>;
   if (error) return <div className="text-center p-8 text-red-500">{error}</div>;
   if (!stats) return <div className="text-center p-8">No hay datos</div>;
@@ -42,22 +36,33 @@ export default function Stats() {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Navbar unificada con Dashboard */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold">Estadísticas</h1>
+            <div className="flex items-center space-x-8">
+              <h1 className="text-xl font-semibold text-gray-900">
+                Asistente Inteligente
+              </h1>
+              <div className="flex space-x-4">
+                <Link
+                  to="/dashboard"
+                  className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Conversaciones
+                </Link>
+                <Link
+                  to="/stats"
+                  className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Estadísticas
+                </Link>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center">
               <button
-                onClick={() => navigate('/dashboard')}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-              >
-                Volver al Dashboard
-              </button>
-              <button
-                onClick={handleLogout}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                onClick={logout}
+                className="text-gray-500 hover:text-gray-700 text-sm"
               >
                 Cerrar sesión
               </button>
@@ -66,8 +71,10 @@ export default function Stats() {
         </div>
       </nav>
 
+      {/* Contenido de estadísticas (sin cambios) */}
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          <h2 className="text-2xl font-bold mb-6">Estadísticas de la plataforma</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Tarjeta: Total conversaciones */}
             <div className="bg-white overflow-hidden shadow rounded-lg">
