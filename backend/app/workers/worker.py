@@ -2,15 +2,21 @@ from celery import Celery
 from celery.schedules import crontab
 from app.core.config import settings
 
-# Crear instancia de Celery
 celery_app = Celery(
     "worker",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.workers.tasks"]
+    include=["app.workers.tasks", "app.workers.timeout"]  # Añadido timeout
 )
 
-# Configuración opcional
+# Configuración de tareas periódicas (beat)
+celery_app.conf.beat_schedule = {
+    'close-inactive-conversations': {
+        'task': 'app.workers.timeout.close_inactive_conversations',
+        'schedule': crontab(minute='*/1'),  # Ejecutar cada minuto para pruebas (ajustar después)
+    },
+}
+
 celery_app.conf.update(
     task_serializer='json',
     accept_content=['json'],
@@ -23,13 +29,4 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-# Programar tarea periódica (cada minuto)
-celery_app.conf.beat_schedule = {
-    'close-inactive-conversations': {
-        'task': 'app.workers.tasks.close_inactive_conversations',
-        'schedule': crontab(minute='*'),  # cada minuto (ajustable)
-    },
-}
-
-# Para facilitar la importación desde otros módulos
 celery = celery_app

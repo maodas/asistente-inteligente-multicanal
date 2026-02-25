@@ -1,4 +1,4 @@
-
+version: '3.8'
 
 services:
   postgres:
@@ -43,7 +43,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
     volumes:
-      - ./backend:/app  # Montar código para hot-reload
+      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,13 +62,28 @@ services:
       TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       SECRET_KEY: ${SECRET_KEY:-supersecretkey}
-      PYTHONPATH: /app  # Importante para imports
+      PYTHONPATH: /app
     volumes:
       - ./backend:/app
     depends_on:
       - redis
       - postgres
-    command: celery -A app.worker worker --loglevel=info --pool=solo  # --pool=solo para Windows
+    command: celery -A app.worker worker --loglevel=info --pool=solo
+
+  beat:
+    build: ./backend
+    container_name: asistente_beat
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-asistente}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-supersecretkey}
+      PYTHONPATH: /app
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - postgres
+    command: celery -A app.worker beat --loglevel=info
 
 volumes:
   postgres_data:

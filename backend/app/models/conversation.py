@@ -17,6 +17,7 @@ class Conversation(Base):
     status = Column(Enum(ConversationStatus), default=ConversationStatus.BOT)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_activity_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     customer = relationship("Customer", backref="conversations")
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
