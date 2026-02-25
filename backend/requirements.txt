@@ -16,3 +16,4 @@ python-multipart==0.0.9
 email-validator==2.1.0
 bcrypt==4.0.1
 passlib==1.7.4
+python-socketio[asyncio]==5.11.4
