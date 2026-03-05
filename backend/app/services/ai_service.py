@@ -50,7 +50,7 @@ INFORMACIÓN DEL NEGOCIO:
 - Email: {BUSINESS_CONFIG['email']}
 - Web: {BUSINESS_CONFIG['website']}
 - Política de devoluciones: {BUSINESS_CONFIG['returns_policy']}
-- Garantía: {BUsINESS_CONFIG['warranty']}
+- Garantía: {BUSINESS_CONFIG['warranty']}
 - Envíos: {BUSINESS_CONFIG['shipping']}
 - Métodos de pago: {BUSINESS_CONFIG['payment_methods']}
 - Categorías de productos: {', '.join([cat['name'] for cat in BUSINESS_CONFIG['categories']])}
