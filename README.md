@@ -73,6 +73,4 @@ cd frontend && npm run test
 📄 Licencia
 
 MIT
-👤 Autor
 
-Tu Nombre - @ma_odas - maodas00@gmail.com o rodas807@gmail.com
